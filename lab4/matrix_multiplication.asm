@@ -1,0 +1,112 @@
+; Matrix multiplication
+
+ASSUME CS:CODE , DS:DATA
+
+DATA SEGMENT
+M1 DB 01H,01H,01H,01H,01H,01H,01H,01H,01H
+M2 DB 01H,01H,01H,01H,01H,01H,01H,01H,01H
+M3 DB 9 DUP(0)
+M4 DB ' $'
+DATA ENDS
+
+CODE SEGMENT
+START:
+
+mov ax, DATA
+mov ds, ax
+
+; CL keeps column count for matrix 1
+; CH keeps row count for matrix 2
+
+MOV CL,0 ;clear cx
+MOV CH,0
+
+P1:
+XOR BX,BX ;clear bx
+MOV BL,CH 
+; bx used to index m1 and m2 locations
+
+MOV DL, M2[BX] ;mov number from matrix 2 to DL
+XOR BX, BX ;clear bx
+MOV BL, CL ;mov cl to bl
+MOV AL, M1[BX] ;mov number from matrix 1 to AL
+MUL DL ;multiplies DL content with AL
+;mat2 number * mat1 number -> stored in AL
+
+ADD M3[BX], AL; add res to entry in m3
+XOR BX,BX; clear bx
+MOV BL,CH
+MOV DL,M2[BX+1]
+XOR BX,BX
+MOV BL,CL
+MOV AL,M1[BX+1]
+MUL DL
+
+ADD M3[BX+1],AL
+XOR BX,BX
+MOV BL,CH
+MOV DL,M2[BX+2]
+XOR BX,BX
+MOV BL,CL
+MOV AL,M1[BX+2]
+MUL DL
+
+ADD M3[BX+2],AL
+ADD CH,3
+CMP CH,8
+JBE P1
+ADD CL,3
+CMP CL,8
+JBE P1
+MOV DX,0AH
+MOV AH,02H
+INT 21H
+
+MOV CL,0
+MOV CH,0
+PP:
+XOR BX,BX
+MOV BL,CL
+MOV AL,M3[BX]
+MOV DL,AL
+ROL DL,4
+AND DL,0FH
+ADD DL,30H
+CMP DL,'9'
+JBE F1
+ADD DL,7H
+
+F1:
+MOV AH,02H
+INT 21H
+MOV AL,M3[BX]
+AND AL,0FH
+MOV DL,AL
+ADD DL,30H
+CMP DL,'9'
+JBE F2
+ADD DL,7
+
+F2:
+MOV AH,02H
+INT 21H
+MOV DX,OFFSET M4
+MOV AH,09H
+INT 21H
+INC CH
+CMP CH,3
+JNZ L1
+MOV DX,0AH
+MOV AH,02H
+INT 21H
+MOV CH,0
+
+L1:
+INC CL
+CMP CL,9
+JNZ PP
+MOV AH,4CH
+INT 21H
+
+CODE ENDS
+END START

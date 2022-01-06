@@ -1,0 +1,173 @@
+READ MACRO N,J1,J2    
+
+J1:MOV AH,01H
+    INT 21H
+    CMP AL,0DH                
+    JE J2                      
+    SUB AL,30H
+    MOV BL,AL
+    MOV AX,N
+    MOV DX,0AH
+    MUL DX
+    XOR BH,BH
+    ADD AX,BX
+    MOV N,AX
+    JMP J1
+
+J2 :NOP                         ;NO OP
+
+ENDM
+
+PRINT MACRO MSG
+
+   LEA DX,MSG
+   MOV AH,09H
+   INT 21H
+
+ENDM
+
+PRINTMUL MACRO N1,L2,L3
+
+    MOV BX,000AH
+    MOV AX,N1
+    XOR CX,CX
+
+    ;TO PUSH INTO STACK
+L2:XOR DX,DX
+    DIV BX
+    PUSH DX
+    INC CX
+    CMP AX,0000H
+    JNE L2
+
+    ;TO POP FROM STACK
+L3: POP DX
+    ADD DL,30H
+    MOV AH,02H                  ;PRINTS CHAR
+    INT 21H
+    LOOP L3
+ENDM
+
+.MODEL SMALL
+.STACK 100H
+
+.DATA                                           ;DATA SEGMENT
+    MSG1 DB 10,13,'ENTER NUMBER: $'
+    MSG2 DB 10,13,'     SORTED ARRAY $'
+    MSG3 DB 10,13,'          $'
+    MSG4 DB 10,13,'ENTER NUMBER OF ELEMENTS: $'
+    MSG5 DB 10,13,'     GIVEN ARRAY $'
+    N DW 0
+    NUM DW 50 DUP(0)
+    SML DW 0
+
+.CODE                                           ;CODE SEGMENT
+MAIN PROC
+
+    MOV AX,@DATA
+    MOV DS,AX
+
+    PRINT MSG4
+    READ N,JUMP1,JUMP2
+
+    ;READ N ELEMENTS FOR N SIZED ARRAY
+    MOV CX,N
+    MOV SI,00H
+
+LOOP1:PRINT MSG1
+    READ NUM[SI],JUMP3,JUMP4
+    ADD SI,02
+    LOOP LOOP1
+
+  PRINT MSG5
+  CALL SHOW_ARRAY
+
+
+    MOV AX,N
+    MOV AH,2
+    MUL AH
+    MOV SI,AX
+    SUB SI,02
+    LEA DI,NUM[SI]
+    LEA SI,NUM
+    CALL QUICKSORT
+    PRINT MSG2
+    CALL SHOW_ARRAY
+
+    MOV AH,4CH
+    INT 21H
+
+MAIN ENDP
+
+
+QUICKSORT PROC
+
+    CMP SI,DI
+    JNC J1
+      PUSH SI
+      PUSH DI
+      CALL PART
+      MOV DX,SI
+      POP DI
+      POP SI
+
+      PUSH DI
+      MOV DI,DX
+      PUSH DI
+      SUB DI,02
+      CALL QUICKSORT
+      POP SI
+      ADD SI,02
+      POP DI
+      CALL QUICKSORT
+
+J1:RET
+
+QUICKSORT ENDP
+
+
+PART PROC
+  MOV AX,[DI]
+  MOV CX,DI
+  MOV DI,SI
+  SUB SI,02
+
+J21:CMP AX,[DI]
+  JC J11
+  ADD SI,02
+  MOV BX,[SI]
+  MOV DX,[DI]
+  MOV [SI],DX
+  MOV [DI],BX
+
+J11:ADD DI,02
+  CMP DI,CX
+  JNZ J21
+  ADD SI,2
+  MOV BX,[SI]
+  MOV DI,CX
+  MOV [DI],BX
+  MOV [SI],AX
+  RET
+PART ENDP
+
+SHOW_ARRAY PROC
+    MOV CX,N
+    MOV SI,00H
+L4: PUSH CX
+    PRINT MSG3
+    PRINTMUL NUM[SI],L5,L6
+    ADD SI,02H
+    POP CX
+    LOOP L4
+    RET
+SHOW_ARRAY ENDP
+
+    MOV DX, 02H
+    MOV AH, 2
+    INT 21H
+
+
+    MOV AH,4CH
+    INT 21H
+END
